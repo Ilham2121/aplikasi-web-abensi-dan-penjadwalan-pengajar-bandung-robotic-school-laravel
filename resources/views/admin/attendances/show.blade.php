@@ -33,7 +33,9 @@
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <h5 class="font-weight-bold">Teacher</h5>
-                            <p>{{ $attendance->schedule->teacher->user->name }}</p>
+                            @foreach($attendance->schedule->teachers as $teacher)
+                                <p>{{ $teacher->user->name }}</p>
+                            @endforeach
 
                             <h5 class="font-weight-bold mt-3">School</h5>
                             <p>{{ $attendance->schedule->school->name }}</p>

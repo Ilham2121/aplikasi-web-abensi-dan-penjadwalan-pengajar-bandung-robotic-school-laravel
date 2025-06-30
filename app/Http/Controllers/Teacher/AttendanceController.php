@@ -27,28 +27,51 @@ class AttendanceController extends Controller
     {
         $user = Auth::user();
         $teacher = Teacher::where('user_id', $user->id)->firstOrFail();
-        $today = Carbon::now()->format('l');
-
-        $todaySchedules = Schedule::with('school')
-            ->whereHas('teachers', function($query) use ($teacher) {
+        $currentTime = Carbon::now(); // Waktu sekarang
+    
+        // Konversi nama hari dari Inggris ke Indonesia
+        $hariInggris = Carbon::now()->format('l'); // Nama hari dalam bahasa Inggris
+        $hariIndonesia = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu',
+        ];
+        
+        $today = $hariIndonesia[$hariInggris]; // Ubah ke bahasa Indonesia
+        
+        // Ambil jadwal untuk hari ini
+        $todaySchedules = Schedule::with('school') 
+            ->whereHas('teachers', function ($query) use ($teacher) {
                 $query->where('teacher_id', $teacher->id);
             })
-            ->where('day', $today)
+            ->where('day', $today) // Filter hanya jadwal untuk hari ini dalam bahasa Indonesia
             ->orderBy('start_time')
             ->get();
-
-        // Get attendance status for today's schedules
+    
+        // Loop untuk menambahkan status kehadiran dan apakah jadwal sedang berlangsung
         foreach ($todaySchedules as $schedule) {
             $attendance = Attendance::where('schedule_id', $schedule->id)
                 ->whereDate('created_at', Carbon::today())
                 ->first();
-            
-            $schedule->attendance_status = $attendance ? $attendance->status : null;
+    
+            // Cek apakah jadwal sedang berlangsung berdasarkan waktu saat ini
+            $startTime = Carbon::parse($schedule->start_time);
+            $endTime = Carbon::parse($schedule->end_time);
+            $schedule->is_active = $currentTime->between($startTime, $endTime);
+    
+            // Tambahkan informasi kehadiran
+            $schedule->attendance_status = $attendance ? $attendance->attendance_status : null;
             $schedule->attendance_id = $attendance ? $attendance->id : null;
         }
-
-        return view('teacher.attendances.today', compact('todaySchedules'));
+    
+        return view('teacher.attendances.today', compact('todaySchedules', 'currentTime', 'today'));
     }
+    
+
 
     /**
      * Show the form for creating a new attendance record.
@@ -83,45 +106,69 @@ class AttendanceController extends Controller
      */
     public function store(Request $request)
     {
+        // Set locale untuk waktu di PHP
+        setlocale(LC_TIME, 'id_ID.UTF-8');
+        
+        // Set locale untuk Carbon
+        Carbon::setLocale('id');
+    
         $user = Auth::user();
         $teacher = Teacher::where('user_id', $user->id)->firstOrFail();
+    
+        $currentTime = Carbon::now()->format('H:i:s'); // Format HH:MM:SS
+        $today = Carbon::now()->translatedFormat('l');// Format waktu sekarang (hari)
+
         
         $request->validate([
             'schedule_id' => 'required|exists:schedules,id',
             'photo' => 'required|image|max:2048',
             'note' => 'nullable|string|max:500',
         ]);
-
+    
         $schedule = Schedule::whereHas('teachers', function($query) use ($teacher) {
                 $query->where('teacher_id', $teacher->id);
             })
             ->where('id', $request->schedule_id)
             ->firstOrFail();
-
-        // Check if attendance already exists for today
+    
+        // Cek apakah ada jadwal untuk hari ini yang cocok dengan waktu
+        $todaySchedules = Schedule::with(['school', 'teachers'])
+            ->where('day', $today) // Cek apakah hari ini sesuai dengan enum di DB
+            ->whereTime('start_time', '<=', $currentTime) // Mulai sebelum atau sama dengan waktu sekarang
+            ->whereTime('end_time', '>=', $currentTime) // Berakhir setelah atau sama dengan waktu sekarang
+            ->orderBy('start_time')
+            ->get();
+    
+       
+        // Proses lainnya
         $existingAttendance = Attendance::where('schedule_id', $schedule->id)
             ->whereDate('created_at', Carbon::today())
             ->first();
-
+    
         if ($existingAttendance) {
             return redirect()->route('teacher.attendances.today')
                 ->with('error', 'You have already submitted attendance for this schedule today.');
         }
-
+    
         // Upload the photo
         $photoPath = $request->file('photo')->store('attendances', 'public');
-
+    
         // Create attendance record
         $attendance = new Attendance();
         $attendance->schedule_id = $schedule->id;
+        $attendance->teacher_id = $teacher->id;
+        $attendance->attendance_date = Carbon::today()->format('Y-m-d');
+        $attendance->check_in_time = Carbon::now()->format('H:i:s');
         $attendance->photo = $photoPath;
         $attendance->note = $request->note;
-        $attendance->status = 'pending';
-        $attendance->save();
+        $status = $attendance->attendance_status = 1;  
 
+        $attendance->save();
+    
         return redirect()->route('teacher.attendances.today')
             ->with('success', 'Attendance has been submitted successfully and is pending approval.');
     }
+    
 
     /**
      * Display attendance history.

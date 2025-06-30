@@ -16,10 +16,12 @@ class Attendance extends Model
      */
     protected $fillable = [
         'schedule_id',
+        'teacher_id',
+        'attendance_date',
+        'check_in_time',
         'photo',
         'note',
         'status',
-        'rejection_reason',
     ];
     
     /**
@@ -28,6 +30,8 @@ class Attendance extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'attendance_date' => 'date',
+        'check_in_time' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -39,4 +43,10 @@ class Attendance extends Model
     {
         return $this->belongsTo(Schedule::class);
     }
+
+    public function teacher()
+    {
+        return $this->belongsTo(Teacher::class);
+    }
 }
+

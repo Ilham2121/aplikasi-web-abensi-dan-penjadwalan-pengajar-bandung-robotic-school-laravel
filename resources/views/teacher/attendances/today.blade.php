@@ -27,6 +27,7 @@
         </div>
         <div class="card-body">
             @if($todaySchedules->count() > 0)
+            
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped">
                         <thead>
@@ -49,13 +50,15 @@
                                         </span>
                                     </td>
                                     <td>
-                                        @if($schedule->attendance_status)
-                                            <span class="badge {{ $schedule->attendance_status == 'approved' ? 'bg-success' : ($schedule->attendance_status == 'rejected' ? 'bg-danger' : 'bg-warning') }}">
-                                                {{ ucfirst($schedule->attendance_status) }}
+                                        @if($schedule->attendance_status )
+                                        
+                                            <span class="badge {{ $schedule->attendance_status == 1 ? 'bg-success' : 'bg-danger' }}">
+                                                {{ $schedule->attendance_status == 1 ? 'Hadir' : 'Tidak Hadir' }}
                                             </span>
                                         @else
-                                            <span class="badge bg-danger">Not Submitted</span>
+                                            <span class="badge bg-warning">Status Belum Diperbarui</span>
                                         @endif
+
                                     </td>
                                     <td>
                                         @if($schedule->attendance_status)

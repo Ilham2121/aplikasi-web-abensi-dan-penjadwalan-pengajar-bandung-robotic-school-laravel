@@ -8,7 +8,13 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
+    
+   
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     
     <style>
         body {
@@ -119,6 +125,7 @@
                 </main>
             @else
                 <main class="col-12 py-4">
+                   
                     @yield('content')
                 </main>
             @endauth
@@ -127,6 +134,7 @@
     
     <footer class="bg-dark text-white text-center py-3 mt-auto">
         <div class="container">
+            
             <p class="mb-0">&copy; {{ date('Y') }} Bandung Robotic School. All rights reserved.</p>
         </div>
     </footer>
@@ -152,5 +160,6 @@
     </script>
     
     @stack('scripts')
+   
 </body>
 </html> 

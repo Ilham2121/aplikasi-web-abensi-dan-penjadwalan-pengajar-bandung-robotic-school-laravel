@@ -52,6 +52,16 @@ class ScheduleController extends Controller
     /**
      * Show the form for creating a new resource.
      */
+
+     private function getEnumValues($table, $column)
+{
+    $enumValues = DB::select("SHOW COLUMNS FROM {$table} WHERE Field = ?", [$column]);
+    $enum = $enumValues[0]->Type;
+
+    preg_match_all("/'([^']+)'/", $enum, $matches);
+
+    return $matches[1]; // Mengembalikan array nilai enum
+}
     public function create()
     {
         $schools = School::all();
@@ -60,9 +70,8 @@ class ScheduleController extends Controller
         // Days of week options
         $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
         
-        // Schedule type options
-        $scheduleTypes = ['regular', 'substitute'];
-        
+        $scheduleTypes = $this->getEnumValues('schedules', 'schedule_type');
+       
         // Semester options
         $semesters = ['ganjil', 'genap'];
         
@@ -82,12 +91,13 @@ class ScheduleController extends Controller
      */
     public function store(Request $request)
     {
+   
         $request->validate([
             'school_id' => 'required|exists:schools,id',
             'day' => 'required|string',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
-            'schedule_type' => 'required|in:regular,substitute',
+            'schedule_type' => 'required|in:regular,private',
             'semester' => 'required|in:ganjil,genap',
             'academic_year' => 'required|string',
             'semester_start' => 'required|date',
@@ -95,8 +105,8 @@ class ScheduleController extends Controller
             'teacher_ids' => 'required|array',
             'teacher_ids.*' => 'exists:teachers,id',
         ]);
-        
         DB::beginTransaction();
+       
         
         try {
             // Create schedule
@@ -112,7 +122,7 @@ class ScheduleController extends Controller
                 'semester_end' => $request->semester_end,
                 'is_active' => true,
             ]);
-            
+          
             // Attach teachers to schedule
             $schedule->teachers()->attach($request->teacher_ids);
             
@@ -324,3 +334,4 @@ class ScheduleController extends Controller
         }
     }
 }
+

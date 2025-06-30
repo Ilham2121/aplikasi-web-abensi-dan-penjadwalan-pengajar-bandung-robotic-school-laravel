@@ -82,9 +82,13 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge {{ $attendance->status == 'approved' ? 'bg-success' : ($attendance->status == 'rejected' ? 'bg-danger' : 'bg-warning') }}">
-                                    {{ ucfirst($attendance->status) }}
-                                </span>
+                                @if($attendance->attendance_status !== null)
+                                    <span class="badge {{ $attendance->attendance_status == 1 ? 'bg-success' : 'bg-danger' }}">
+                                        {{ $attendance->attendance_status == 1 ? 'Hadir' : 'Tidak Hadir' }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-warning">Status Belum Diperbarui</span>
+                                @endif
                             </td>
                             <td>
                                 <a href="{{ route('teacher.attendances.show', $attendance->id) }}" class="btn btn-info btn-sm">

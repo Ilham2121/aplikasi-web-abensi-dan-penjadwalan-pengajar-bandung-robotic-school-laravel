@@ -35,13 +35,30 @@
                     <h5 class="card-title mb-0">Schedule Information</h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('admin.schedules.store') }}" method="POST">
+                    <form action="{{ route('admin.schedules.store') }}" method="POST" id="scheduleForm">
                         @csrf
                         
                         <div class="row mb-3">
                             <div class="col-md-6">
+                                <label for="schedule_type">Schedule Type <span class="text-danger">*</span></label>
+                                <select name="schedule_type" id="schedule_type" class="form-control">
+                                    @foreach ($scheduleTypes as $type)
+                                        <option value="{{ strtolower($type) }}" {{ strtolower(old('schedule_type')) == strtolower($type) ? 'selected' : '' }}>
+                                            {{ ucfirst($type) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
                                 <label for="school_id" class="form-label">School <span class="text-danger">*</span></label>
-                                <select class="form-select @error('school_id') is-invalid @enderror" id="school_id" name="school_id" required>
+                                <!-- Hidden input untuk menyimpan STMIK school ID -->
+                                <input type="hidden" name="school_id" id="hidden_school_id" value="{{ $schools->firstWhere('name', 'STMIK')->id ?? '' }}">
+                                <select class="form-select @error('school_id') is-invalid @enderror" 
+                                        id="school_id" 
+                                        {{ (old('schedule_type') == 'private') ? 'disabled' : '' }}>
                                     <option value="">Select School</option>
                                     @foreach ($schools as $school)
                                         <option value="{{ $school->id }}" {{ old('school_id') == $school->id ? 'selected' : '' }}>
@@ -53,6 +70,7 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
+                            
                             
                             <div class="col-md-6">
                                 <label for="day" class="form-label">Day <span class="text-danger">*</span></label>
@@ -89,22 +107,7 @@
                         </div>
                         
                         <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label for="schedule_type" class="form-label">Schedule Type <span class="text-danger">*</span></label>
-                                <select class="form-select @error('schedule_type') is-invalid @enderror" id="schedule_type" name="schedule_type" required>
-                                    <option value="">Select Type</option>
-                                    @foreach ($scheduleTypes as $type)
-                                        <option value="{{ $type }}" {{ old('schedule_type') == $type ? 'selected' : '' }}>
-                                            {{ ucfirst($type) }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('schedule_type')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            
-                            <div class="col-md-4">
+                            <div class="col-md-6 ">
                                 <label for="semester" class="form-label">Semester <span class="text-danger">*</span></label>
                                 <select class="form-select @error('semester') is-invalid @enderror" id="semester" name="semester" required>
                                     <option value="">Select Semester</option>
@@ -118,8 +121,10 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                            
-                            <div class="col-md-4">
+                        </div>
+                        
+                        <div class="row mb-3">                            
+                            <div class="col-md-6">
                                 <label for="academic_year" class="form-label">Academic Year <span class="text-danger">*</span></label>
                                 <select class="form-select @error('academic_year') is-invalid @enderror" id="academic_year" name="academic_year" required>
                                     <option value="">Select Academic Year</option>
@@ -191,33 +196,72 @@
             </div>
         </div>
     </div>
-</div>
-@endsection
 
-@section('scripts')
+
+
+   
+    
+
+</div>
+
+@endsection
+@push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Validate end time is after start time
-        document.getElementById('end_time').addEventListener('change', function() {
-            const startTime = document.getElementById('start_time').value;
-            const endTime = this.value;
-            
-            if (startTime && endTime && startTime >= endTime) {
-                alert('End time must be after start time');
-                this.value = '';
+document.addEventListener('DOMContentLoaded', function () {
+    const scheduleType = document.getElementById('schedule_type');
+    const schoolSelect = document.getElementById('school_id');
+    const hiddenSchoolId = document.getElementById('hidden_school_id');
+    const stmikSchoolId = '{{ $schools->firstWhere("name", "STMIK")->id ?? "" }}';
+
+    function toggleSchoolSelect() {
+        const selectedType = scheduleType.value.toLowerCase();
+        console.log('Selected schedule_type:', selectedType);
+
+        if (selectedType === 'private') {
+            console.log('Disabling school select and setting STMIK ID:', stmikSchoolId);
+            schoolSelect.disabled = true;
+            hiddenSchoolId.value = stmikSchoolId; // Set hidden input value
+            if (stmikSchoolId) {
+                schoolSelect.value = stmikSchoolId;
             }
-        });
-        
-        // Validate semester end is after semester start
-        document.getElementById('semester_end').addEventListener('change', function() {
-            const startDate = document.getElementById('semester_start').value;
-            const endDate = this.value;
-            
-            if (startDate && endDate && startDate >= endDate) {
-                alert('Semester end date must be after semester start date');
-                this.value = '';
-            }
-        });
+        } else {
+            console.log('Enabling school select');
+            schoolSelect.disabled = false;
+            hiddenSchoolId.value = schoolSelect.value; // Update hidden input with select value
+        }
+    }
+
+    // Jalankan saat load dan saat select berubah
+    toggleSchoolSelect();
+    scheduleType.addEventListener('change', toggleSchoolSelect);
+    
+    // Update hidden input when select changes
+    schoolSelect.addEventListener('change', function() {
+        if (!schoolSelect.disabled) {
+            hiddenSchoolId.value = this.value;
+        }
     });
+
+    // Validasi waktu
+    const endTime = document.getElementById('end_time');
+    const startTime = document.getElementById('start_time');
+    endTime.addEventListener('change', function () {
+        if (startTime.value && endTime.value && startTime.value >= endTime.value) {
+            alert('End time must be after start time');
+            endTime.value = '';
+        }
+    });
+
+    // Validasi tanggal semester
+    const semesterStart = document.getElementById('semester_start');
+    const semesterEnd = document.getElementById('semester_end');
+    semesterEnd.addEventListener('change', function () {
+        if (semesterStart.value && semesterEnd.value && semesterStart.value >= semesterEnd.value) {
+            alert('Semester end date must be after start date');
+            semesterEnd.value = '';
+        }
+    });
+});
 </script>
-@endsection 
+@endpush
+

@@ -52,6 +52,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     
     // Attendances
     Route::get('/attendances', [App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendances.index');
+    Route::get('/attendances-filter', [App\Http\Controllers\Admin\AttendanceController::class, 'filter'])->name('attendances.filter');
     Route::get('/attendances/{attendance}', [App\Http\Controllers\Admin\AttendanceController::class, 'show'])->name('attendances.show');
     Route::post('/attendances/{attendance}/approve', [App\Http\Controllers\Admin\AttendanceController::class, 'approve'])->name('attendances.approve');
     Route::post('/attendances/{attendance}/reject', [App\Http\Controllers\Admin\AttendanceController::class, 'reject'])->name('attendances.reject');
